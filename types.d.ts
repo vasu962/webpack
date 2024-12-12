@@ -1495,11 +1495,6 @@ declare interface ChunkRenderContextCssModulesPlugin {
 	runtimeTemplate: RuntimeTemplate;
 
 	/**
-	 * meta data for runtime
-	 */
-	metaData: string[];
-
-	/**
 	 * undo path to css file
 	 */
 	undoPath: string;
@@ -4551,7 +4546,7 @@ declare interface ExportSpec {
 	 */
 	hidden?: boolean;
 }
-type ExportedVariableInfo = string | ScopeInfo | VariableInfo;
+type ExportedVariableInfo = string | VariableInfo | ScopeInfo;
 declare abstract class ExportsInfo {
 	get ownedExports(): Iterable<ExportInfo>;
 	get orderedOwnedExports(): Iterable<ExportInfo>;
@@ -6815,7 +6810,7 @@ declare class JavascriptParser extends Parser {
 			| undefined
 			| ((
 					arg0: string,
-					arg1: string | ScopeInfo | VariableInfo,
+					arg1: string | VariableInfo | ScopeInfo,
 					arg2: () => string[]
 			  ) => any),
 		defined: undefined | ((arg0: string) => any),
@@ -7148,6 +7143,7 @@ declare class JavascriptParser extends Parser {
 			| ExportAllDeclarationJavascriptParser
 			| ImportExpressionJavascriptParser
 	) => undefined | ImportAttributes;
+	static VariableInfo: typeof VariableInfo;
 }
 
 /**
@@ -8735,6 +8731,7 @@ declare class Module extends DependenciesBlock {
 	factoryMeta?: FactoryMeta;
 	useSourceMap: boolean;
 	useSimpleSourceMap: boolean;
+	hot: boolean;
 	buildMeta?: BuildMeta;
 	buildInfo?: BuildInfo;
 	presentationalDependencies?: Dependency[];
@@ -10645,11 +10642,6 @@ declare interface Output {
 		| ((pathData: PathData, assetInfo?: AssetInfo) => string);
 
 	/**
-	 * Compress the data in the head tag of CSS files.
-	 */
-	cssHeadDataCompression?: boolean;
-
-	/**
 	 * Similar to `output.devtoolModuleFilenameTemplate`, but used in the case of duplicate module identifiers.
 	 */
 	devtoolFallbackModuleFilenameTemplate?: string | Function;
@@ -10942,11 +10934,6 @@ declare interface OutputNormalized {
 	cssFilename?:
 		| string
 		| ((pathData: PathData, assetInfo?: AssetInfo) => string);
-
-	/**
-	 * Compress the data in the head tag of CSS files.
-	 */
-	cssHeadDataCompression?: boolean;
 
 	/**
 	 * Similar to `output.devtoolModuleFilenameTemplate`, but used in the case of duplicate module identifiers.
@@ -12292,11 +12279,6 @@ declare interface RenderContextCssModulesPlugin {
 	uniqueName: string;
 
 	/**
-	 * need compress
-	 */
-	cssHeadDataCompression: boolean;
-
-	/**
 	 * undo path to css file
 	 */
 	undoPath: string;
@@ -13516,6 +13498,7 @@ declare abstract class RuntimeTemplate {
 	contentHashReplacement: string;
 	isIIFE(): undefined | boolean;
 	isModule(): undefined | boolean;
+	isNeutralPlatform(): boolean;
 	supportsConst(): undefined | boolean;
 	supportsArrowFunction(): undefined | boolean;
 	supportsAsyncFunction(): undefined | boolean;
@@ -13936,7 +13919,7 @@ declare interface RuntimeValueOptions {
  * to create the range of the _parent node_.
  */
 declare interface ScopeInfo {
-	definitions: StackedMap<string, ScopeInfo | VariableInfo>;
+	definitions: StackedMap<string, VariableInfo | ScopeInfo>;
 	topLevelScope: boolean | "arrow";
 	inShorthand: string | boolean;
 	inTaggedTemplateTag: boolean;
@@ -14246,6 +14229,7 @@ declare interface SourceMap {
 	sourceRoot?: string;
 	sourcesContent?: string[];
 	names?: string[];
+	debugId?: string;
 }
 declare class SourceMapDevToolPlugin {
 	constructor(options?: SourceMapDevToolPluginOptions);
@@ -14278,6 +14262,11 @@ declare interface SourceMapDevToolPluginOptions {
 	 * Indicates whether column mappings should be used (defaults to true).
 	 */
 	columns?: boolean;
+
+	/**
+	 * Emit debug IDs into source and SourceMap.
+	 */
+	debugIds?: boolean;
 
 	/**
 	 * Exclude modules that match the given value from source map generation.
@@ -15261,7 +15250,12 @@ type UsageStateType = 0 | 1 | 2 | 3 | 4;
 type UsedName = string | false | string[];
 type Value = string | number | boolean | RegExp;
 type ValueCacheVersion = string | Set<string>;
-declare abstract class VariableInfo {
+declare class VariableInfo {
+	constructor(
+		declaredScope: ScopeInfo,
+		freeName?: string | true,
+		tagInfo?: TagInfo
+	);
 	declaredScope: ScopeInfo;
 	freeName?: string | true;
 	tagInfo?: TagInfo;
